@@ -1,9 +1,10 @@
+
 export interface OriginalResponse {
     "originalResponses": originalResponseObj[]
 
 }
 
-export type originalResponseObj = {
+export interface originalResponseObj {
     "transactionId": number,
     "authorizationCode": string,
     "transactionDate": string,
@@ -12,5 +13,12 @@ export type originalResponseObj = {
     "transactionStatus": string,
     "description": string,
     "amount": number,
-    "metadata": {}
+    "metadata": Metadata
 }
+
+export type Metadata = {
+    relatedTransactionId?: number,
+    deviceId?: string
+}
+
+

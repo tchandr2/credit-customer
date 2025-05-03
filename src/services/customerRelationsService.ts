@@ -39,20 +39,44 @@ class CustomerRelationsService {
     };
 
     const customersBasedOnTransactionType: OriginalResponse["originalResponses"] = (data as OriginalResponse["originalResponses"])
-      .filter(item => (item.transactionType === "P2P_SEND" || item.transactionType === "P2P_RECEIVE"));
-
+      .filter(item => (item.transactionType === "P2P_SEND" || item.transactionType === "P2P_RECEIVE" || item.metadata?.deviceId));
 
     const customersBasedOnCustomerId: OriginalResponse["originalResponses"] = (customersBasedOnTransactionType as OriginalResponse["originalResponses"]).filter(item => item.customerId === customerId);
 
-    const customersRelated: OriginalResponse["originalResponses"] = (customersBasedOnTransactionType as OriginalResponse["originalResponses"]).filter(item1 =>
-      customersBasedOnCustomerId.find((item2) => item2.authorizationCode === item1.authorizationCode));
+    const relatedCustomersWithTransactionId = customersBasedOnTransactionType.filter(item1 =>
+      customersBasedOnCustomerId.some(item2 => {
+        if (item2.metadata.relatedTransactionId) {
+          if (item2.metadata.relatedTransactionId === item1.transactionId) {
+            return true;
+          }
+        }
+      })
+    );
 
-    const relatedCustomersArray: customerRelation["relatedCustomers"] = customersRelated.map(item => {
+    const relatedCustomersWithDeviceId = customersBasedOnTransactionType.filter(item1 =>
+      customersBasedOnCustomerId.some(item2 => {
+        if (item2.metadata.deviceId) {
+          if (item1.customerId != customerId) {
+            if (item2.metadata.deviceId === item1.metadata.deviceId) {
+              return true;
+            }
+          }
+        }
+      })
+    );
+
+    const mergedArray = [
+      ...new Map([...relatedCustomersWithTransactionId, ...relatedCustomersWithDeviceId].map(item => [item.customerId, item])).values()
+    ];
+
+    const relatedCustomersArray: customerRelation["relatedCustomers"] = mergedArray.map(item => {
       customerRelationsObj = {} as relationsObj;
       customerRelationsObj.relatedCustomerId = item.customerId;
       customerRelationsObj.relationType = item.transactionType;
       return customerRelationsObj;
     });
+
+
     return relatedCustomersArray;
 
   }
@@ -61,7 +85,7 @@ class CustomerRelationsService {
     const data = await this.getData();
 
     const customersBasedOnCustomerId: OriginalResponse["originalResponses"] = (data as OriginalResponse["originalResponses"]).filter(item => item.customerId === customerId);
-    let newArray: any = [];
+
     let timelineObj: timelineObj = {
       createdAt: "",
       status: "",
@@ -93,32 +117,41 @@ class CustomerRelationsService {
       return accumulator;
     }, {});
 
+
     for (const key in groupedCustomerTransactions) {
       customerTransactionObj = {} as customerTransactionObj;
       customerTransactionObj.timeline = [];
-      const groupedCustomerTransactionsArray = groupedCustomerTransactions[key];
+      const groupedCustomerTransactionsArray: OriginalResponse['originalResponses'] = groupedCustomerTransactions[key];
+
+      //sort objects based on date
+      groupedCustomerTransactionsArray.sort((a, b) => {
+        const date1 = new Date(a.transactionDate);
+        const date2 = new Date(b.transactionDate);
+        return date1.getTime() - date2.getTime()
+      });
+
+      console.log(groupedCustomerTransactionsArray);
 
 
       for (let i in groupedCustomerTransactionsArray) {
         timelineObj = {} as timelineObj;
         const selectedObj = groupedCustomerTransactionsArray[i]
 
-        if (!selectedObj?.metadata?.relatedTransactionId) {
+        if (i === "0") {
           customerTransactionObj.createdAt = selectedObj.transactionDate;
           customerTransactionObj.transactionId = selectedObj.transactionId;
           customerTransactionObj.authorizationCode = selectedObj.authorizationCode;
           customerTransactionObj.description = selectedObj.description;
           customerTransactionObj.transactionType = selectedObj.transactionType;
           customerTransactionObj.metadata = selectedObj.metadata;
-          customerTransactionObj.updatedAt = "",
-            customerTransactionObj.status = "";
         }
-        if (selectedObj?.metadata?.relatedTransactionId) {
-          if (selectedObj.metadata?.relatedTransactionId > temp) {
-            temp = selectedObj.metadata?.relatedTransactionId;
-            customerTransactionObj.updatedAt = selectedObj.transactionDate,
-              customerTransactionObj.status = selectedObj.transactionStatus;
-          }
+        else {
+          customerTransactionObj.updatedAt = selectedObj.transactionDate,
+            customerTransactionObj.status = selectedObj.transactionStatus;
+        }
+        if (groupedCustomerTransactionsArray.length === 1) {
+          customerTransactionObj.updatedAt = selectedObj.transactionDate,
+            customerTransactionObj.status = selectedObj.transactionStatus;
         }
         timelineObj.createdAt = selectedObj.transactionDate;
         timelineObj.status = selectedObj.transactionStatus;
@@ -126,7 +159,6 @@ class CustomerRelationsService {
         customerTransactionObj.timeline.push(timelineObj);
       }
 
-      newArray.push(customerTransactionObj);
       customerTransactionArray["transactions"].push(customerTransactionObj);
     }
     return customerTransactionArray;
