@@ -23,7 +23,7 @@ class CustomerRelationsService {
       const data = await response.json();
       return data;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching data:', error);
     }
   }
@@ -117,7 +117,6 @@ class CustomerRelationsService {
       return accumulator;
     }, {});
 
-
     for (const key in groupedCustomerTransactions) {
       customerTransactionObj = {} as customerTransactionObj;
       customerTransactionObj.timeline = [];
@@ -129,8 +128,6 @@ class CustomerRelationsService {
         const date2 = new Date(b.transactionDate);
         return date1.getTime() - date2.getTime()
       });
-
-      console.log(groupedCustomerTransactionsArray);
 
 
       for (let i in groupedCustomerTransactionsArray) {

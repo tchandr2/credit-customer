@@ -8,21 +8,21 @@ import CustomerRelationsService from '../services/customerRelationsService';
 // Read all transactions
 export const getCustomerTransactions = async (req: Request, res: Response, next: NextFunction) => {
   const customerId = parseInt(req.params.customerId);
-  const customerTransactions = await CustomerRelationsService.getCustomerTransactionsByCustomerId(customerId);;
-  if (customerTransactions) {
-    res.send(customerTransactions);
+  const custTransactions = await CustomerRelationsService.getCustomerTransactionsByCustomerId(customerId);;
+  if (custTransactions && custTransactions.transactions.length > 0) {
+    res.send(custTransactions);
   } else {
-    res.status(404).json({ message: 'Data not found' });
+    res.status(404).send('Data not found');
   }
 };
 
 // Read single transaction
 export const getRelatedCustomers = async (req: Request, res: Response, next: NextFunction) => {
   const customerId = parseInt(req.params.customerId);
-  const user = await CustomerRelationsService.getRelatedCustomersByCustomerId(customerId);;
-  if (user) {
-    res.send(user);
+  const relatedCustomers = await CustomerRelationsService.getRelatedCustomersByCustomerId(customerId);;
+  if (relatedCustomers && relatedCustomers.length > 0) {
+    res.send(200).send(relatedCustomers);
   } else {
-    res.status(404).json({ message: 'Data not found' });
+    res.send(404).send('Data not found');
   }
 };

@@ -1,63 +1,95 @@
-import { Request, Response } from 'express';
-import { getRelatedCustomers } from '../src/controllers/customerController';
-import customerRelationsService from '../src/services/customerRelationsService';
 
+import CustomerRelationsService from '../src/services/customerRelationsService';
 
-// describe('Customer Relation Service', () => {
-//     const httpMocks = require('node-mocks-http');
+const mockTransactionData = [{ "amount": 5000, "authorizationCode": "F10000", "customerId": 1, "description": "Deposit from Citibank", "metadata": {}, "transactionDate": "2022-09-01T11:46:42+00:00", "transactionId": 1, "transactionStatus": "PENDING", "transactionType": "ACH_INCOMING" },
+{ "amount": 5000, "authorizationCode": "F10000", "customerId": 1, "description": "Deposit from Citibank", "metadata": { "relatedTransactionId": 1 }, "transactionDate": "2022-09-03T15:41:42+00:00", "transactionId": 2, "transactionStatus": "SETTLED", "transactionType": "ACH_INCOMING" },
+{ "amount": -143.21, "authorizationCode": "F10001", "customerId": 1, "description": "Amazon", "metadata": {}, "transactionDate": "2022-09-05T11:36:42+00:00", "transactionId": 3, "transactionStatus": "PENDING", "transactionType": "POS" },
+];
 
-//     const mockRelatedCustomer = {
-//         "relatedCustomers": [
-//             {
-//                 "relatedCustomerId": 3,
-//                 "relationType": "P2P_SEND"
-//             },
-//             {
-//                 "relatedCustomerId": 5,
-//                 "relationType": "P2P_RECEIVE"
-//             },
-//             {
-//                 "relatedCustomerId": 3,
-//                 "relationType": "DEVICE"
-//             }
-//         ]
-//     };
+const mockRelatedCustomer = [
+    {
+        "relatedCustomerId": 4,
+        "relationType": "P2P_SEND"
+    },
+    {
+        "relatedCustomerId": 6,
+        "relationType": "P2P_SEND"
+    },
+    {
+        "relatedCustomerId": 7,
+        "relationType": "P2P_SEND"
+    },
+    {
+        "relatedCustomerId": 5,
+        "relationType": "WIRE_OUTGOING"
+    }
+]
 
-//     const mockCustomerTransaction = {
-//         "transactions": [
-//             {
-//                 "createdAt": "2022-09-01T11:46:42+00:00", // based on the first status
-//                 "updatedAt": "2022-09-03T15:41:42+00:00", // based on the latest status
-//                 "transactionId": 1, // use the first transaction
-//                 "authorizationCode": "F10000",
-//                 "status": "SETTLED",
-//                 "description": "Amazon.com",
-//                 "transactionType": "POS",
-//                 "metadata": {},
-//                 "timeline": [
-//                     {
-//                         "createdAt": "2022-09-01T11:46:42+00:00",
-//                         "status": "PROCESSING",
-//                         "amount": 5000.00
-//                     },
-//                     {
-//                         "createdAt": "2022-09-03T15:41:42+00:00",
-//                         "status": "SETTLED",
-//                         "amount": 5000.00
-//                     }
-//                 ]
-//             }
-//         ]
-//     }
+const mockCustomerTransaction = {
+    "transactions": [
+        {
+            "timeline": [
+                {
+                    "createdAt": "2022-09-06T11:05:00+00:00",
+                    "status": "SETTLED",
+                    "amount": 10000
+                }
+            ],
+            "createdAt": "2022-09-06T11:05:00+00:00",
+            "transactionId": 16,
+            "authorizationCode": "F10007",
+            "description": "Transfer from Frederik",
+            "transactionType": "P2P_RECEIVE",
+            "metadata": {
+                "relatedTransactionId": 15
+            },
+            "updatedAt": "2022-09-06T11:05:00+00:00",
+            "status": "SETTLED"
+        },
+        {
+            "timeline": [
+                {
+                    "createdAt": "2022-09-06T13:05:00+00:00",
+                    "status": "SETTLED",
+                    "amount": -10000
+                }
+            ],
+            "createdAt": "2022-09-06T13:05:00+00:00",
+            "transactionId": 17,
+            "authorizationCode": "F10008",
+            "description": "Transfer to Weoy",
+            "transactionType": "P2P_SEND",
+            "metadata": {
+                "relatedTransactionId": 18,
+                "deviceId": "F210200"
+            },
+            "updatedAt": "2022-09-06T13:05:00+00:00",
+            "status": "SETTLED"
+        }
+    ]
+};
 
-//     it('should return a related customers for the specified customerId', () => {
-//         const req = httpMocks.createRequest({
-//             method: 'GET',
-//             url: '/1/relations',
-//             params: { id: '1' },
-//         });
-//         const res = httpMocks.createResponse();
-//         const result = customerRelationsService.getRelatedCustomersByCustomerId(1);
-//         expect(result).toHaveBeenCalled();
-//     });
-// });
+jest.mock('../src/services/customerRelationsService', () => ({
+    getData: jest.fn(() => mockTransactionData),
+    getRelatedCustomersByCustomerId: jest.fn(() => mockRelatedCustomer),
+    getCustomerTransactionsByCustomerId: jest.fn(() => mockCustomerTransaction)
+}));
+
+describe('Customer Relation Service', () => {
+
+    it('getData should fetch data successfully', async () => {
+        const result = CustomerRelationsService.getData();
+        expect(result).toBe(mockTransactionData);
+
+    });
+
+    it('getRelatedCustomersByCustomerId should fetch data successfully', async () => {
+        const result = CustomerRelationsService.getRelatedCustomersByCustomerId(5);
+        expect(result).toBe(mockRelatedCustomer);
+    });
+
+    it('getCustomerTransactionsByCustomerId should fetch data successfully', async () => {
+        const result = CustomerRelationsService.getCustomerTransactionsByCustomerId(1);
+        expect(result).toBe(mockCustomerTransaction);
+    });
+});

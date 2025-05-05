@@ -23,11 +23,12 @@ const getRelatedCustomers = async (req, res, next) => {
     const customerId = parseInt(req.params.customerId);
     const user = await customerRelationsService_1.default.getRelatedCustomersByCustomerId(customerId);
     ;
-    if (user) {
+    if (user && user.length > 0) {
+        console.log(user);
         res.send(user);
     }
     else {
-        res.status(404).json({ message: 'Data not found' });
+        res.send(404).send('Data not found');
     }
 };
 exports.getRelatedCustomers = getRelatedCustomers;
